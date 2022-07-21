@@ -1,20 +1,21 @@
-const express = require('express');
-const app = express();
-const http = require('http');
-const server = http.createServer(app);
+/* const express = require('express');
+const app = express(); */
+/* const http = require('http'); */
+/* const server = http.createServer(app); */
 require("dotenv").config();
-const io = require("socket.io")(server, {
+/* const io = require("socket.io")(server, {
   cors: {
     origin: "https://multiplayer-ai-tic-tac-toe.netlify.app/",
     methods: ["GET", "POST"]
   }
-});
-const cors = require('cors');
+}); */
+const io = require("socket.io")();
+/* const cors = require('cors'); */
 
 let queuePlayers = []
 let actualQueue = 1
 
-app.use(cors());
+/* app.use(cors()); */
 
 /* app.get('/', (req, res) => {
   res.sendFile(__dirname + '/index.html');
