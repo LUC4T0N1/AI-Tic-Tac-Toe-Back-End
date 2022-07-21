@@ -1,21 +1,23 @@
-/* const express = require('express');
-const app = express(); */
-/* const http = require('http'); */
-/* const server = http.createServer(app); */
+const express = require('express');
+const app = express();
+
+const server = express()
+  .use((req, res) => res.sendFile(INDEX, { root: __dirname }))
+  .listen(PORT, () => console.log(`Listening on ${PORT}`));
+
 require("dotenv").config();
-/* const io = require("socket.io")(server, {
+const io = require("socket.io")(server, {
   cors: {
     origin: "https://multiplayer-ai-tic-tac-toe.netlify.app/",
     methods: ["GET", "POST"]
   }
-}); */
-const io = require("socket.io")();
-/* const cors = require('cors'); */
+});
+const cors = require('cors');
 
 let queuePlayers = []
 let actualQueue = 1
 
-/* app.use(cors()); */
+app.use(cors());
 
 /* app.get('/', (req, res) => {
   res.sendFile(__dirname + '/index.html');
@@ -70,9 +72,4 @@ io.on("connection", (socket) => {
       }
     }
   });
-
-});
-
-io.listen(process.env.PORT || 8080, () => {
-  console.log('listening on port *' + process.env.PORT );
 });
