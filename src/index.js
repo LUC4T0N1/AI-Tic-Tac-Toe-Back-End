@@ -1,12 +1,14 @@
 const express = require('express');
 const app = express();
-
-const server = express()
-  .use((req, res) => res.sendFile(__dirname + '/index.html'))
-  .listen(process.env.PORT, () => console.log(`Listening on ${process.env.PORT}`));
-
+const http = require('http');
+const server = http.createServer(app);
 require("dotenv").config();
-const io = require("socket.io")(server);
+const io = require("socket.io")(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  }
+});
 const cors = require('cors');
 
 let queuePlayers = []
@@ -14,9 +16,9 @@ let actualQueue = 1
 
 app.use(cors());
 
-/* app.get('/', (req, res) => {
+app.get('/', (req, res) => {
   res.sendFile(__dirname + '/index.html');
-}); */
+});
 
 
 io.on("connection", (socket) => {
@@ -67,4 +69,10 @@ io.on("connection", (socket) => {
       }
     }
   });
+
+});
+
+
+server.listen(process.env.PORT || 8080, () => {
+  console.log('listening on port *' + process.env.PORT  + '!!!' );
 });
