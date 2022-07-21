@@ -16,9 +16,9 @@ let actualQueue = 1
 
 app.use(cors());
 
-app.get('/', (req, res) => {
+/* app.get('/', (req, res) => {
   res.sendFile(__dirname + '/index.html');
-});
+}); */
 
 
 io.on("connection", (socket) => {
