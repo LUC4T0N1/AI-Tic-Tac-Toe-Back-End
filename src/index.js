@@ -6,12 +6,7 @@ const server = express()
   .listen(process.env.PORT, () => console.log(`Listening on ${process.env.PORT}`));
 
 require("dotenv").config();
-const io = require("socket.io")(server, {
-  cors: {
-    origin: "http://localhost:3000/",
-    methods: ["GET", "POST"]
-  }
-});
+const io = require("socket.io")(server);
 const cors = require('cors');
 
 let queuePlayers = []
