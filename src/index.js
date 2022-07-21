@@ -8,7 +8,7 @@ const server = express()
 require("dotenv").config();
 const io = require("socket.io")(server, {
   cors: {
-    origin: "https://multiplayer-ai-tic-tac-toe.netlify.app/",
+    origin: "http://localhost:3000/",
     methods: ["GET", "POST"]
   }
 });
