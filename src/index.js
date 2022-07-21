@@ -2,7 +2,7 @@ const express = require('express');
 const app = express();
 
 const server = express()
-  .use((req, res) => res.sendFile(INDEX, { root: __dirname }))
+  .use((req, res) => res.sendFile(__dirname + '/index.html'))
   .listen(process.env.PORT, () => console.log(`Listening on ${process.env.PORT}`));
 
 require("dotenv").config();
