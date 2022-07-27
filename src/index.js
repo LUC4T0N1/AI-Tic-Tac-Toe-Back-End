@@ -13,6 +13,7 @@ const cors = require('cors');
 
 let queuePlayers = []
 let actualQueue = 1
+let customRooms = []
 
 app.use(cors());
 
@@ -25,8 +26,23 @@ io.on("connection", (socket) => {
   console.log(`User Connected: ${socket.id}`);
 
   socket.on("join_room", (data) => {
+    console.log("data " + data)
     socket.join(data);
     console.log(`User with ID: ${socket.id} joined room: ${data}`);
+    let room = customRooms.filter(r => r = data);
+    console.log("tamanho sala: " + room.length)
+    console.log("sala: " + room)
+    if(room.length === 0){
+      console.log("sala criada: " + data);
+      customRooms.push(data)
+    }else{  
+      io.to(data).emit("room-ready", data);
+      console.log("enviando room ready")
+      const index = customRooms.indexOf(data);
+      if (index > -1) { 
+        customRooms.splice(index, 1); 
+      }
+    }
   });
 
   socket.on("send_message", (data) => {
@@ -47,6 +63,16 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     console.log("User Disconnected", socket.id);
   });
+
+  socket.on("player-ready", (data) => {
+    socket.to(data.room).emit("player-ready", data);
+    console.log(`User with ID: ${socket.id} is ready`);
+  })
+
+  socket.on("room-ready", (data) => {
+    socket.to(data.room).emit("room-ready", data);
+    console.log(`Room with id: ${data.room} is ready`);
+  })
 
   socket.on("join_queue", (player) => {
     console.log("Novo player na fila geral: " + JSON.stringify({player: player, id: socket.id, position: queuePlayers.length + 1}))
@@ -73,6 +99,6 @@ io.on("connection", (socket) => {
 });
 
 
-server.listen(process.env.PORT || 8080, () => {
+server.listen(8080, () => {
   console.log('listening on port *' + process.env.PORT  + '!!!' );
 });
