@@ -88,9 +88,19 @@ io.on("connection", (socket) => {
     const indexOfObject = queuePlayers.findIndex(object => {
       return object.id === socket.id;
     });
-    console.log("index dele: " + indexOfObject + " tamanho da fila antes: " + queuePlayers.length)
-    queuePlayers.splice(indexOfObject,1)
-    console.log(" tamanho da fila depois: " + queuePlayers.length)
+    if(indexOfObject > -1){
+      console.log("index dele: " + indexOfObject + " tamanho da fila antes: " + queuePlayers.length)
+      queuePlayers.splice(indexOfObject,1)
+      console.log(" tamanho da fila depois: " + queuePlayers.length)
+    }
+    const indexOfObject2 = customRooms.findIndex(object => {
+      return object.id === socket.id;
+    });
+    if(indexOfObject2 > -1){
+      console.log("index dele: " + indexOfObject2 + " tamanho da fila antes: " + customRooms.length)
+      customRooms.splice(indexOfObject2,1)
+      console.log(" tamanho da fila depois: " + customRooms.length)
+    }
   });
 
   socket.on("player-ready", (data) => {
