@@ -29,16 +29,18 @@ io.on("connection", (socket) => {
     console.log("data " + data)
     socket.join(data);
     console.log(`User with ID: ${socket.id} joined room: ${data}`);
-    let room = customRooms.filter(r => r = data);
+    let room = customRooms.filter(r => r.room = data);
     console.log("tamanho sala: " + room.length)
     console.log("sala: " + room)
     if(room.length === 0){
       console.log("sala criada: " + data);
-      customRooms.push(data)
+      customRooms.push({id: socket.id, room: data})
     }else{  
       io.to(data).emit("room-ready", data);
       console.log("enviando room ready")
-      const index = customRooms.indexOf(data);
+      const index = customRooms.findIndex(object => {
+        return object.room === data;
+      });
       if (index > -1) { 
         customRooms.splice(index, 1); 
       }
@@ -60,8 +62,35 @@ io.on("connection", (socket) => {
     socket.to(data.room).emit("game-move", data);
   });
 
+  socket.on("leave-room", () => {
+    console.log("User leaving room", socket.id);
+    const indexOfObject = queuePlayers.findIndex(object => {
+      return object.id === socket.id;
+    });
+    if(indexOfObject > -1){
+      console.log("index dele: " + indexOfObject + " tamanho da fila antes: " + queuePlayers.length)
+      queuePlayers.splice(indexOfObject,1)
+      console.log(" tamanho da fila depois: " + queuePlayers.length)
+  }
+
+    const indexOfObject2 = customRooms.findIndex(object => {
+      return object.id === socket.id;
+    });
+    if(indexOfObject2 > -1){
+      console.log("index dele: " + indexOfObject2 + " tamanho da fila antes: " + customRooms.length)
+      customRooms.splice(indexOfObject2,1)
+      console.log(" tamanho da fila depois: " + customRooms.length)
+    }
+  })
+
   socket.on("disconnect", () => {
     console.log("User Disconnected", socket.id);
+    const indexOfObject = queuePlayers.findIndex(object => {
+      return object.id === socket.id;
+    });
+    console.log("index dele: " + indexOfObject + " tamanho da fila antes: " + queuePlayers.length)
+    queuePlayers.splice(indexOfObject,1)
+    console.log(" tamanho da fila depois: " + queuePlayers.length)
   });
 
   socket.on("player-ready", (data) => {
