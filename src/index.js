@@ -5,7 +5,7 @@ const server = http.createServer(app);
 require("dotenv").config();
 const io = require("socket.io")(server, {
   cors: {
-    origin: "https://socket-tic-tac-toe.netlify.app/",
+    origin: "*",
     methods: ["GET", "POST"]
   }
 });
