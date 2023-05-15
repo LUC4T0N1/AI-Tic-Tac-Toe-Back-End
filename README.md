@@ -1,4 +1,4 @@
-# Multiplayer-AI-Tic-Tac-Toe
+# AI-Tic-Tac-Toe-Back-End
 [![NPM](https://img.shields.io/npm/l/react)](https://github.com/LUC4T0N1/AI-Tic-Tac-Toe-Back-End/blob/main/LICENSE)
 
 # About the project
@@ -7,6 +7,7 @@ https://online-tictactoe.netlify.app/
 A system that allows you to play tic-tac-toe in different ways.
 It uses some artificial intelligence algorithms, which allows you to play alone against the computer in 3 different difficulties: easy | random | ultra hard.
 In addition, Socket.IO is used to implement a multiplayer mode, which allows you to play against another person while chatting with them, be it a random opponent or a specific friend.
+
 This is the Back End repo of the project, the Front End repo is here: https://github.com/LUC4T0N1/Multiplayer-AI-Tic-Tac-Toe
 
 ## Functionalities
