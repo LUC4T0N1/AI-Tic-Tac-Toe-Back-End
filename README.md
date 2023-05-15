@@ -1,5 +1,5 @@
 # Multiplayer-AI-Tic-Tac-Toe
-[![NPM](https://img.shields.io/npm/l/react)](https://github.com/LUC4T0N1/Multiplayer-AI-Tic-Tac-Toe/blob/main/LICENCE)
+[![NPM](https://img.shields.io/npm/l/react)](https://github.com/LUC4T0N1/AI-Tic-Tac-Toe-Back-End/blob/main/LICENSE)
 
 # About the project
 https://online-tictactoe.netlify.app/
