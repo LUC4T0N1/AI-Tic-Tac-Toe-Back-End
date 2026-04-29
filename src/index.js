@@ -6,6 +6,9 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 
 const pacmanRoutes = require('./games/pacman/routes');
+const snakeRoutes = require('./games/snake/routes');
+const breakoutRoutes = require('./games/breakout/routes');
+const tetrisRoutes = require('./games/tetris/routes');
 const { registerSocketHandlers } = require('./socket');
 
 const app = express();
@@ -20,6 +23,9 @@ app.use(express.json());
 app.get('/', (req, res) => res.sendFile(__dirname + '/index.html'));
 
 app.use('/leaderboard/pacman', pacmanRoutes);
+app.use('/leaderboard/snake', snakeRoutes);
+app.use('/leaderboard/breakout', breakoutRoutes);
+app.use('/leaderboard/tetris', tetrisRoutes);
 
 registerSocketHandlers(io);
 
