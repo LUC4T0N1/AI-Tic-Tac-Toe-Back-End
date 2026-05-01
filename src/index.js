@@ -9,6 +9,7 @@ const pacmanRoutes = require('./games/pacman/routes');
 const snakeRoutes = require('./games/snake/routes');
 const breakoutRoutes = require('./games/breakout/routes');
 const tetrisRoutes = require('./games/tetris/routes');
+const infinityRunRoutes = require('./games/infinityrun/routes');
 const { registerSocketHandlers } = require('./socket');
 
 const app = express();
@@ -26,6 +27,7 @@ app.use('/leaderboard/pacman', pacmanRoutes);
 app.use('/leaderboard/snake', snakeRoutes);
 app.use('/leaderboard/breakout', breakoutRoutes);
 app.use('/leaderboard/tetris', tetrisRoutes);
+app.use('/leaderboard/infinity-run', infinityRunRoutes);
 
 registerSocketHandlers(io);
 
