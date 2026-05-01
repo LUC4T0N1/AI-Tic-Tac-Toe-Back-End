@@ -121,6 +121,10 @@ function registerSocketHandlers(io) {
       socket.to(room).emit('pong-restart-ready');
     });
 
+    socket.on('pong-hit', ({ room, paddleY, hitY }) => {
+      socket.to(room).emit('pong-hit', { paddleY, hitY });
+    });
+
     socket.on('pong-leave', ({ room }) => {
       socket.to(room).emit('pong-opponent-left');
       socket.leave(room);
