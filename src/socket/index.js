@@ -207,9 +207,8 @@ function registerSocketHandlers(io) {
       socket.to(room).emit('pacman-power', { row, col });
     });
 
-    socket.on('pacman-over', ({ room }) => {
-      socket.to(room).emit('pacman-opp-over');
-      pacmanGameRooms.delete(socket.id);
+    socket.on('pacman-died', ({ room, score }) => {
+      socket.to(room).emit('pacman-opp-died', { score });
     });
 
     socket.on('pacman-restart-ready', ({ room }) => {
@@ -270,9 +269,8 @@ function registerSocketHandlers(io) {
       socket.to(room).emit('tetris-piece', { x, y, shape, color });
     });
 
-    socket.on('tetris-over', ({ room }) => {
-      socket.to(room).emit('tetris-opp-over');
-      tetrisGameRooms.delete(socket.id);
+    socket.on('tetris-died', ({ room, score }) => {
+      socket.to(room).emit('tetris-opp-died', { score });
     });
 
     socket.on('tetris-restart-ready', ({ room }) => {
@@ -387,9 +385,8 @@ function registerSocketHandlers(io) {
       socket.to(room).emit('breakout-state', { paddle, ball, bricks, score, level, lives });
     });
 
-    socket.on('breakout-over', ({ room }) => {
-      socket.to(room).emit('breakout-opp-over');
-      breakoutGameRooms.delete(socket.id);
+    socket.on('breakout-died', ({ room, score }) => {
+      socket.to(room).emit('breakout-opp-died', { score });
     });
 
     socket.on('breakout-restart-ready', ({ room }) => {
@@ -454,9 +451,8 @@ function registerSocketHandlers(io) {
       socket.to(room).emit('infrun-state', { monkeyY, ducking, score, speed, dist, obstacles });
     });
 
-    socket.on('infrun-over', ({ room }) => {
-      socket.to(room).emit('infrun-opp-over');
-      infrunGameRooms.delete(socket.id);
+    socket.on('infrun-died', ({ room, score }) => {
+      socket.to(room).emit('infrun-opp-died', { score });
     });
 
     socket.on('infrun-restart-ready', ({ room }) => {
