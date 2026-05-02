@@ -27,6 +27,12 @@ let snakeQueueRoom = 400000;
 const snakePendingRooms = new Map();
 const snakeGameRooms    = new Map();
 
+// ── Breakout state ────────────────────────────────────────────────────────
+let breakoutQueue = [];
+let breakoutQueueRoom = 500000;
+const breakoutPendingRooms = new Map();
+const breakoutGameRooms    = new Map();
+
 function registerSocketHandlers(io) {
   io.on('connection', (socket) => {
     console.log(`User Connected: ${socket.id}`);
@@ -335,6 +341,65 @@ function registerSocketHandlers(io) {
       }
     });
 
+    // ── Breakout ───────────────────────────────────────────────────────────
+    socket.on('breakout-join-room', ({ room, username }) => {
+      if (breakoutPendingRooms.has(room)) {
+        const { socketId: p1Id, username: p1Name } = breakoutPendingRooms.get(room);
+        breakoutPendingRooms.delete(room);
+        socket.join(room);
+        io.to(p1Id).emit('breakout-room-ready', { room, opponent: username || 'PLAYER 2' });
+        socket.emit(     'breakout-room-ready', { room, opponent: p1Name  || 'PLAYER 1' });
+        breakoutGameRooms.set(p1Id,      room);
+        breakoutGameRooms.set(socket.id, room);
+      } else {
+        breakoutPendingRooms.set(room, { socketId: socket.id, username: username || 'PLAYER 1' });
+        socket.join(room);
+        socket.emit('breakout-waiting');
+      }
+    });
+
+    socket.on('breakout-join-queue', ({ username }) => {
+      breakoutQueue.push({ id: socket.id, username: username || 'PLAYER' });
+      if (breakoutQueue.length >= 2) {
+        const [p1, p2] = breakoutQueue.splice(0, 2);
+        const roomId = 'brk-q-' + breakoutQueueRoom;
+        const p1Socket = io.sockets.sockets.get(p1.id);
+        if (p1Socket) p1Socket.join(roomId);
+        socket.join(roomId);
+        io.to(p1.id).emit('breakout-game-start', { room: roomId, opponent: p2.username });
+        io.to(p2.id).emit('breakout-game-start', { room: roomId, opponent: p1.username });
+        breakoutGameRooms.set(p1.id,     roomId);
+        breakoutGameRooms.set(socket.id, roomId);
+        breakoutQueueRoom = breakoutQueueRoom >= 599999 ? 500000 : breakoutQueueRoom + 1;
+      }
+    });
+
+    socket.on('breakout-leave-queue', () => {
+      breakoutQueue = breakoutQueue.filter(p => p.id !== socket.id);
+    });
+
+    socket.on('breakout-state', ({ room, paddle, ball, bricks, score, level, lives }) => {
+      socket.to(room).emit('breakout-state', { paddle, ball, bricks, score, level, lives });
+    });
+
+    socket.on('breakout-over', ({ room }) => {
+      socket.to(room).emit('breakout-opp-over');
+      breakoutGameRooms.delete(socket.id);
+    });
+
+    socket.on('breakout-restart-ready', ({ room }) => {
+      socket.to(room).emit('breakout-restart-ready');
+    });
+
+    socket.on('breakout-leave', ({ room }) => {
+      socket.to(room).emit('breakout-opp-left');
+      socket.leave(room);
+      breakoutGameRooms.delete(socket.id);
+      for (const [roomId, data] of breakoutPendingRooms) {
+        if (data.socketId === socket.id) { breakoutPendingRooms.delete(roomId); break; }
+      }
+    });
+
     // ── Disconnect ─────────────────────────────────────────────────────────
     socket.on('disconnect', () => {
       console.log('User Disconnected', socket.id);
@@ -373,6 +438,28 @@ function registerSocketHandlers(io) {
       if (tetrisRoom) {
         io.to(tetrisRoom).emit('tetris-opp-left');
         tetrisGameRooms.delete(socket.id);
+      }
+
+      // Snake cleanup
+      snakeQueue = snakeQueue.filter(p => p.id !== socket.id);
+      for (const [roomId, data] of snakePendingRooms) {
+        if (data.socketId === socket.id) { snakePendingRooms.delete(roomId); break; }
+      }
+      const snakeRoom = snakeGameRooms.get(socket.id);
+      if (snakeRoom) {
+        io.to(snakeRoom).emit('snake-opp-left');
+        snakeGameRooms.delete(socket.id);
+      }
+
+      // Breakout cleanup
+      breakoutQueue = breakoutQueue.filter(p => p.id !== socket.id);
+      for (const [roomId, data] of breakoutPendingRooms) {
+        if (data.socketId === socket.id) { breakoutPendingRooms.delete(roomId); break; }
+      }
+      const breakoutRoom = breakoutGameRooms.get(socket.id);
+      if (breakoutRoom) {
+        io.to(breakoutRoom).emit('breakout-opp-left');
+        breakoutGameRooms.delete(socket.id);
       }
     });
   });
