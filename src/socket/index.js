@@ -15,6 +15,12 @@ let pacmanQueueRoom = 200000;
 const pacmanPendingRooms = new Map();
 const pacmanGameRooms    = new Map();
 
+// ── Tetris state ──────────────────────────────────────────────────────────
+let tetrisQueue = [];
+let tetrisQueueRoom = 300000;
+const tetrisPendingRooms = new Map();
+const tetrisGameRooms    = new Map();
+
 function registerSocketHandlers(io) {
   io.on('connection', (socket) => {
     console.log(`User Connected: ${socket.id}`);
@@ -201,6 +207,69 @@ function registerSocketHandlers(io) {
       }
     });
 
+    // ── Tetris ─────────────────────────────────────────────────────────────
+    socket.on('tetris-join-room', ({ room, username }) => {
+      if (tetrisPendingRooms.has(room)) {
+        const { socketId: p1Id, username: p1Name } = tetrisPendingRooms.get(room);
+        tetrisPendingRooms.delete(room);
+        socket.join(room);
+        io.to(p1Id).emit('tetris-room-ready', { room, opponent: username || 'PLAYER 2' });
+        socket.emit(     'tetris-room-ready', { room, opponent: p1Name  || 'PLAYER 1' });
+        tetrisGameRooms.set(p1Id,      room);
+        tetrisGameRooms.set(socket.id, room);
+      } else {
+        tetrisPendingRooms.set(room, { socketId: socket.id, username: username || 'PLAYER 1' });
+        socket.join(room);
+        socket.emit('tetris-waiting');
+      }
+    });
+
+    socket.on('tetris-join-queue', ({ username }) => {
+      tetrisQueue.push({ id: socket.id, username: username || 'PLAYER' });
+      if (tetrisQueue.length >= 2) {
+        const [p1, p2] = tetrisQueue.splice(0, 2);
+        const roomId = 'tet-q-' + tetrisQueueRoom;
+        const p1Socket = io.sockets.sockets.get(p1.id);
+        if (p1Socket) p1Socket.join(roomId);
+        socket.join(roomId);
+        io.to(p1.id).emit('tetris-game-start', { room: roomId, opponent: p2.username });
+        io.to(p2.id).emit('tetris-game-start', { room: roomId, opponent: p1.username });
+        tetrisGameRooms.set(p1.id,     roomId);
+        tetrisGameRooms.set(socket.id, roomId);
+        tetrisQueueRoom = tetrisQueueRoom >= 399999 ? 300000 : tetrisQueueRoom + 1;
+      }
+    });
+
+    socket.on('tetris-leave-queue', () => {
+      tetrisQueue = tetrisQueue.filter(p => p.id !== socket.id);
+    });
+
+    socket.on('tetris-board', ({ room, board, score, lines, level }) => {
+      socket.to(room).emit('tetris-board', { board, score, lines, level });
+    });
+
+    socket.on('tetris-piece', ({ room, x, y, shape, color }) => {
+      socket.to(room).emit('tetris-piece', { x, y, shape, color });
+    });
+
+    socket.on('tetris-over', ({ room }) => {
+      socket.to(room).emit('tetris-opp-over');
+      tetrisGameRooms.delete(socket.id);
+    });
+
+    socket.on('tetris-restart-ready', ({ room }) => {
+      socket.to(room).emit('tetris-restart-ready');
+    });
+
+    socket.on('tetris-leave', ({ room }) => {
+      socket.to(room).emit('tetris-opp-left');
+      socket.leave(room);
+      tetrisGameRooms.delete(socket.id);
+      for (const [roomId, data] of tetrisPendingRooms) {
+        if (data.socketId === socket.id) { tetrisPendingRooms.delete(roomId); break; }
+      }
+    });
+
     // ── Disconnect ─────────────────────────────────────────────────────────
     socket.on('disconnect', () => {
       console.log('User Disconnected', socket.id);
@@ -228,6 +297,17 @@ function registerSocketHandlers(io) {
       if (pacmanRoom) {
         io.to(pacmanRoom).emit('pacman-opp-left');
         pacmanGameRooms.delete(socket.id);
+      }
+
+      // Tetris cleanup
+      tetrisQueue = tetrisQueue.filter(p => p.id !== socket.id);
+      for (const [roomId, data] of tetrisPendingRooms) {
+        if (data.socketId === socket.id) { tetrisPendingRooms.delete(roomId); break; }
+      }
+      const tetrisRoom = tetrisGameRooms.get(socket.id);
+      if (tetrisRoom) {
+        io.to(tetrisRoom).emit('tetris-opp-left');
+        tetrisGameRooms.delete(socket.id);
       }
     });
   });
