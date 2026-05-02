@@ -21,6 +21,12 @@ let tetrisQueueRoom = 300000;
 const tetrisPendingRooms = new Map();
 const tetrisGameRooms    = new Map();
 
+// ── Snake state ───────────────────────────────────────────────────────────
+let snakeQueue = [];
+let snakeQueueRoom = 400000;
+const snakePendingRooms = new Map();
+const snakeGameRooms    = new Map();
+
 function registerSocketHandlers(io) {
   io.on('connection', (socket) => {
     console.log(`User Connected: ${socket.id}`);
@@ -111,24 +117,24 @@ function registerSocketHandlers(io) {
       pongQueue = pongQueue.filter(p => p.id !== socket.id);
     });
 
-    socket.on('pong-paddle', ({ room, y }) => {
-      socket.to(room).emit('pong-paddle', { y });
+    socket.on('pong-paddle', ({ room, ...rest }) => {
+      socket.to(room).emit('pong-paddle', rest);
     });
 
-    socket.on('pong-ball', ({ room, x, y, vx, vy }) => {
-      socket.to(room).emit('pong-ball', { x, y, vx, vy });
+    socket.on('pong-ball', ({ room, ...rest }) => {
+      socket.to(room).emit('pong-ball', rest);
     });
 
-    socket.on('pong-point', ({ room, leftScore, rightScore }) => {
-      socket.to(room).emit('pong-point', { leftScore, rightScore });
+    socket.on('pong-point', ({ room, ...rest }) => {
+      socket.to(room).emit('pong-point', rest);
     });
 
     socket.on('pong-restart-ready', ({ room }) => {
       socket.to(room).emit('pong-restart-ready');
     });
 
-    socket.on('pong-hit', ({ room, paddleY, hitY }) => {
-      socket.to(room).emit('pong-hit', { paddleY, hitY });
+    socket.on('pong-hit', ({ room, ...rest }) => {
+      socket.to(room).emit('pong-hit', rest);
     });
 
     socket.on('pong-leave', ({ room }) => {
@@ -267,6 +273,65 @@ function registerSocketHandlers(io) {
       tetrisGameRooms.delete(socket.id);
       for (const [roomId, data] of tetrisPendingRooms) {
         if (data.socketId === socket.id) { tetrisPendingRooms.delete(roomId); break; }
+      }
+    });
+
+    // ── Snake ──────────────────────────────────────────────────────────────
+    socket.on('snake-join-room', ({ room, username }) => {
+      if (snakePendingRooms.has(room)) {
+        const { socketId: p1Id, username: p1Name } = snakePendingRooms.get(room);
+        snakePendingRooms.delete(room);
+        socket.join(room);
+        io.to(p1Id).emit('snake-room-ready', { room, opponent: username || 'PLAYER 2' });
+        socket.emit(     'snake-room-ready', { room, opponent: p1Name  || 'PLAYER 1' });
+        snakeGameRooms.set(p1Id,      room);
+        snakeGameRooms.set(socket.id, room);
+      } else {
+        snakePendingRooms.set(room, { socketId: socket.id, username: username || 'PLAYER 1' });
+        socket.join(room);
+        socket.emit('snake-waiting');
+      }
+    });
+
+    socket.on('snake-join-queue', ({ username }) => {
+      snakeQueue.push({ id: socket.id, username: username || 'PLAYER' });
+      if (snakeQueue.length >= 2) {
+        const [p1, p2] = snakeQueue.splice(0, 2);
+        const roomId = 'snk-q-' + snakeQueueRoom;
+        const p1Socket = io.sockets.sockets.get(p1.id);
+        if (p1Socket) p1Socket.join(roomId);
+        socket.join(roomId);
+        io.to(p1.id).emit('snake-game-start', { room: roomId, opponent: p2.username });
+        io.to(p2.id).emit('snake-game-start', { room: roomId, opponent: p1.username });
+        snakeGameRooms.set(p1.id,     roomId);
+        snakeGameRooms.set(socket.id, roomId);
+        snakeQueueRoom = snakeQueueRoom >= 499999 ? 400000 : snakeQueueRoom + 1;
+      }
+    });
+
+    socket.on('snake-leave-queue', () => {
+      snakeQueue = snakeQueue.filter(p => p.id !== socket.id);
+    });
+
+    socket.on('snake-state', ({ room, snake, food, score, level, dir }) => {
+      socket.to(room).emit('snake-state', { snake, food, score, level, dir });
+    });
+
+    socket.on('snake-over', ({ room }) => {
+      socket.to(room).emit('snake-opp-over');
+      snakeGameRooms.delete(socket.id);
+    });
+
+    socket.on('snake-restart-ready', ({ room }) => {
+      socket.to(room).emit('snake-restart-ready');
+    });
+
+    socket.on('snake-leave', ({ room }) => {
+      socket.to(room).emit('snake-opp-left');
+      socket.leave(room);
+      snakeGameRooms.delete(socket.id);
+      for (const [roomId, data] of snakePendingRooms) {
+        if (data.socketId === socket.id) { snakePendingRooms.delete(roomId); break; }
       }
     });
 
