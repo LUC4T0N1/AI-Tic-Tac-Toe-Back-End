@@ -188,6 +188,10 @@ function registerSocketHandlers(io) {
       pacmanGameRooms.delete(socket.id);
     });
 
+    socket.on('pacman-restart-ready', ({ room }) => {
+      socket.to(room).emit('pacman-restart-ready');
+    });
+
     socket.on('pacman-leave', ({ room }) => {
       socket.to(room).emit('pacman-opp-left');
       socket.leave(room);
