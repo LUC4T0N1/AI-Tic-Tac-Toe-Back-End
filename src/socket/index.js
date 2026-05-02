@@ -329,9 +329,8 @@ function registerSocketHandlers(io) {
       socket.to(room).emit('snake-state', { snake, food, score, level, dir });
     });
 
-    socket.on('snake-over', ({ room }) => {
-      socket.to(room).emit('snake-opp-over');
-      snakeGameRooms.delete(socket.id);
+    socket.on('snake-died', ({ room, score }) => {
+      socket.to(room).emit('snake-opp-died', { score });
     });
 
     socket.on('snake-restart-ready', ({ room }) => {
