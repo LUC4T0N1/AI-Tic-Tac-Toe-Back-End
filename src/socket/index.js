@@ -397,6 +397,14 @@ function registerSocketHandlers(io) {
       socket.to(room).emit('breakout-restart-ready');
     });
 
+    socket.on('breakout-launch-ready', ({ room }) => {
+      socket.to(room).emit('breakout-opp-launch-ready');
+    });
+
+    socket.on('breakout-level-done', ({ room }) => {
+      socket.to(room).emit('breakout-opp-level-done');
+    });
+
     socket.on('breakout-leave', ({ room }) => {
       socket.to(room).emit('breakout-opp-left');
       socket.leave(room);
