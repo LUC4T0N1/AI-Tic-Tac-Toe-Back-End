@@ -73,10 +73,10 @@ function startPongGame(io, roomId) {
     return { x: LW / 2, y: LH / 2, vx: INIT_SPEED * dir * Math.cos(ang), vy: INIT_SPEED * ys * Math.sin(ang), spd: INIT_SPEED, hits: 0 };
   }
 
-  function bounce(b, padY, dir) {
+  function bounce(b, padY, dir, hitY) {
     b.hits++;
     b.spd = Math.min(MAX_SPEED, INIT_SPEED + b.hits * SPD_PER_HIT);
-    const rel = Math.max(-1, Math.min(1, (b.y - (padY + PAD_H / 2)) / (PAD_H / 2)));
+    const rel = Math.max(-1, Math.min(1, (hitY - (padY + PAD_H / 2)) / (PAD_H / 2)));
     const ang = rel * MAX_BOUNCE;
     b.vx = dir * Math.cos(ang) * b.spd;
     b.vy =       Math.sin(ang) * b.spd;
@@ -115,6 +115,9 @@ function startPongGame(io, roomId) {
     } else if (st.phase === 'playing') {
       const f = dt * 60;
 
+      const oldX = st.ball.x;
+      const oldY = st.ball.y;
+
       // Move ball
       st.ball.x += st.ball.vx * f;
       st.ball.y += st.ball.vy * f;
@@ -126,22 +129,28 @@ function startPongGame(io, roomId) {
       // Left paddle collision
       if (st.ball.vx < 0) {
         const pr = LP_X + PAD_W; // right edge of left paddle = 42
-        if (st.ball.x - BALL_R <= pr && st.ball.x + BALL_R > LP_X) {
+        if (oldX - BALL_R >= pr && st.ball.x - BALL_R <= pr) {
+          const t = oldX === st.ball.x ? 0 : (oldX - BALL_R - pr) / (oldX - st.ball.x);
+          const crossY = oldY + t * (st.ball.y - oldY);
           const padTop = st.pY - (PAD_H_HIT - PAD_H) / 2;
-          if (st.ball.y + BALL_R >= padTop && st.ball.y - BALL_R <= padTop + PAD_H_HIT) {
-            st.ball.x = pr + BALL_R + 1;
-            bounce(st.ball, st.pY, 1);
+          if (crossY + BALL_R >= padTop && crossY - BALL_R <= padTop + PAD_H_HIT) {
+            bounce(st.ball, st.pY, 1, crossY);
+            st.ball.x = pr + BALL_R + 1 + st.ball.vx * f * (1 - t);
+            st.ball.y = crossY + st.ball.vy * f * (1 - t);
           }
         }
       }
 
       // Right paddle collision
       if (st.ball.vx > 0) {
-        if (st.ball.x + BALL_R >= RP_X && st.ball.x - BALL_R < RP_X + PAD_W) {
+        if (oldX + BALL_R <= RP_X && st.ball.x + BALL_R >= RP_X) {
+          const t = oldX === st.ball.x ? 0 : (RP_X - (oldX + BALL_R)) / (st.ball.x - oldX);
+          const crossY = oldY + t * (st.ball.y - oldY);
           const padTop = st.aY - (PAD_H_HIT - PAD_H) / 2;
-          if (st.ball.y + BALL_R >= padTop && st.ball.y - BALL_R <= padTop + PAD_H_HIT) {
-            st.ball.x = RP_X - BALL_R - 1;
-            bounce(st.ball, st.aY, -1);
+          if (crossY + BALL_R >= padTop && crossY - BALL_R <= padTop + PAD_H_HIT) {
+            bounce(st.ball, st.aY, -1, crossY);
+            st.ball.x = RP_X - BALL_R - 1 + st.ball.vx * f * (1 - t);
+            st.ball.y = crossY + st.ball.vy * f * (1 - t);
           }
         }
       }
