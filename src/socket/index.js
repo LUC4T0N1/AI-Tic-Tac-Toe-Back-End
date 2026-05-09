@@ -1,3 +1,5 @@
+const { censorMessage } = require('../leaderboard/profanity');
+
 // ── TicTacToe state ───────────────────────────────────────────────────────
 let queuePlayers = [];
 let actualQueue = 1;
@@ -199,6 +201,9 @@ function registerSocketHandlers(io) {
     });
 
     socket.on('send_message', (data) => {
+      if (data && data.message) {
+        data.message = censorMessage(data.message);
+      }
       socket.to(data.room).emit('receive_message', data);
     });
 
