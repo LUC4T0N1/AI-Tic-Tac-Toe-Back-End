@@ -2,7 +2,9 @@ const { censorMessage } = require('../../leaderboard/profanity');
 const state = require('../state');
 
 function isValidRoom(data) {
-  return data && typeof data.room === 'string' && data.room.length > 0 && data.room.length <= 100;
+  if (!data || data.room === undefined) return false;
+  const r = String(data.room);
+  return r.length > 0 && r.length <= 100;
 }
 
 function registerTicTacToeHandlers(io, socket) {
@@ -21,38 +23,48 @@ function registerTicTacToeHandlers(io, socket) {
 
   socket.on('send_message', (data) => {
     if (!isValidRoom(data)) return;
-    if (!socket.rooms.has(data.room)) return;
+    const r = String(data.room);
+    if (!socket.rooms.has(r)) return;
     if (data.message) data.message = censorMessage(String(data.message).slice(0, 500));
-    socket.to(data.room).emit('receive_message', data);
+    socket.to(r).emit('receive_message', data);
   });
 
   socket.on('select_letter', (data) => {
-    if (!isValidRoom(data) || !socket.rooms.has(data.room)) return;
-    socket.to(data.room).emit('letter_selected', data);
+    if (!isValidRoom(data)) return;
+    const r = String(data.room);
+    if (!socket.rooms.has(r)) return;
+    socket.to(r).emit('letter_selected', data);
   });
 
   socket.on('game-move', (data) => {
-    if (!isValidRoom(data) || !socket.rooms.has(data.room)) return;
-    socket.to(data.room).emit('game-move', data);
+    if (!isValidRoom(data)) return;
+    const r = String(data.room);
+    if (!socket.rooms.has(r)) return;
+    socket.to(r).emit('game-move', data);
   });
 
   socket.on('player-ready', (data) => {
-    if (!isValidRoom(data) || !socket.rooms.has(data.room)) return;
-    socket.to(data.room).emit('player-ready', data);
+    if (!isValidRoom(data)) return;
+    const r = String(data.room);
+    if (!socket.rooms.has(r)) return;
+    socket.to(r).emit('player-ready', data);
   });
 
   socket.on('room-ready', (data) => {
-    if (!isValidRoom(data) || !socket.rooms.has(data.room)) return;
-    socket.to(data.room).emit('room-ready', data);
+    if (!isValidRoom(data)) return;
+    const r = String(data.room);
+    if (!socket.rooms.has(r)) return;
+    socket.to(r).emit('room-ready', data);
   });
 
   socket.on('join_queue', (player) => {
     if (typeof player !== 'string') return;
     const safeName = player.slice(0, 50);
+    const roomId = `ttt_queue_${state.actualQueue()}`;
     state.queuePlayers.push({ player: safeName, id: socket.id, position: state.queuePlayers.length + 1 });
-    socket.join(state.actualQueue());
+    socket.join(roomId);
     if (state.queuePlayers.length % 2 === 0) {
-      io.to(state.actualQueue()).emit('game_start', state.actualQueue());
+      io.to(roomId).emit('game_start', roomId);
       state.resetQueuePlayers();
       state.incrementActualQueue();
     }
