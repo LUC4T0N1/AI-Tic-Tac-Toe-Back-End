@@ -212,8 +212,8 @@ function registerSocketHandlers(io) {
 
     // Basic Socket Rate Limiting
     const eventCounts = new Map();
-    const MAX_EVENTS_PER_WINDOW = 200; // Total events across all types
-    const WINDOW_MS = 10000;          // 10 seconds
+    const MAX_EVENTS_PER_WINDOW = 1200; // ~30Hz real-time paddle * 10s + headroom
+    const WINDOW_MS = 10000;           // 10 seconds
 
     socket.use(([_event, ..._args], next) => {
       const now = Date.now();
