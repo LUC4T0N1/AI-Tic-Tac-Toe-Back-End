@@ -2,16 +2,18 @@ const state = require('../state');
 
 function registerSnakeHandlers(io, socket) {
   socket.on('snake-join-room', ({ room, username }) => {
+    if (typeof room !== 'string' || room.length === 0 || room.length > 100) return;
+    const safeName = typeof username === 'string' ? username.slice(0, 50) : '';
     if (state.snakePendingRooms.has(room)) {
       const { socketId: p1Id, username: p1Name } = state.snakePendingRooms.get(room);
       state.snakePendingRooms.delete(room);
       socket.join(room);
-      io.to(p1Id).emit('snake-room-ready', { room, opponent: username || 'PLAYER 2' });
+      io.to(p1Id).emit('snake-room-ready', { room, opponent: safeName || 'PLAYER 2' });
       socket.emit(     'snake-room-ready', { room, opponent: p1Name  || 'PLAYER 1' });
       state.snakeGameRooms.set(p1Id,      room);
       state.snakeGameRooms.set(socket.id, room);
     } else {
-      state.snakePendingRooms.set(room, { socketId: socket.id, username: username || 'PLAYER 1' });
+      state.snakePendingRooms.set(room, { socketId: socket.id, username: safeName || 'PLAYER 1' });
       socket.join(room);
       socket.emit('snake-waiting');
     }
@@ -19,7 +21,8 @@ function registerSnakeHandlers(io, socket) {
 
   socket.on('snake-join-queue', ({ username }) => {
     const q = state.snakeQueue();
-    q.push({ id: socket.id, username: username || 'PLAYER' });
+    const safeName = typeof username === 'string' ? username.slice(0, 50) : 'PLAYER';
+    q.push({ id: socket.id, username: safeName || 'PLAYER' });
     state.setSnakeQueue(q);
 
     if (q.length >= 2) {
@@ -43,18 +46,22 @@ function registerSnakeHandlers(io, socket) {
   });
 
   socket.on('snake-state', ({ room, snake, food, score, level, dir }) => {
+    if (state.snakeGameRooms.get(socket.id) !== room) return;
     socket.to(room).emit('snake-state', { snake, food, score, level, dir });
   });
 
   socket.on('snake-died', ({ room, score }) => {
+    if (state.snakeGameRooms.get(socket.id) !== room) return;
     socket.to(room).emit('snake-opp-died', { score });
   });
 
   socket.on('snake-restart-ready', ({ room }) => {
+    if (state.snakeGameRooms.get(socket.id) !== room) return;
     socket.to(room).emit('snake-restart-ready');
   });
 
   socket.on('snake-leave', ({ room }) => {
+    if (state.snakeGameRooms.get(socket.id) !== room) return;
     socket.to(room).emit('snake-opp-left');
     socket.leave(room);
     state.snakeGameRooms.delete(socket.id);

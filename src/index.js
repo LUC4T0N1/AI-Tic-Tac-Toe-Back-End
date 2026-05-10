@@ -29,15 +29,20 @@ const globalLimiter = rateLimit({
 });
 app.use(globalLimiter);
 
+const allowedOrigin = process.env.CLIENT_URL;
+if (!allowedOrigin) {
+  console.warn('WARNING: CLIENT_URL is not set — CORS is open to all origins. Set CLIENT_URL in production.');
+}
+
 const io = new Server(server, {
-  cors: { 
-    origin: process.env.CLIENT_URL || '*', 
-    methods: ['GET', 'POST'] 
+  cors: {
+    origin: allowedOrigin || '*',
+    methods: ['GET', 'POST']
   },
 });
 
 app.use(cors({
-  origin: process.env.CLIENT_URL || '*',
+  origin: allowedOrigin || '*',
 }));
 
 // Body limit: 10kb to prevent large payload DoS

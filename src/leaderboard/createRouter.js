@@ -65,6 +65,9 @@ function createLeaderboardRouter({ table }) {
     if (typeof name !== 'string' || name.trim().length === 0 || name.trim().length > 20) {
       return res.status(400).json({ error: 'Nome inválido' });
     }
+    if (typeof score !== 'number' || !Number.isFinite(score) || !Number.isInteger(score) || score < 0) {
+      return res.status(400).json({ error: 'Score inválido' });
+    }
     if (containsProfanity(name)) {
       return res.status(422).json({ error: 'Nome inválido' });
     }
@@ -98,7 +101,7 @@ function createLeaderboardRouter({ table }) {
 
   // GET /?page=N — paginated top scores
   router.get('/', async (req, res) => {
-    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const page = Math.min(10000, Math.max(1, parseInt(req.query.page) || 1));
     const limit = 20;
     const offset = (page - 1) * limit;
     try {

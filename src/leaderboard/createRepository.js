@@ -1,8 +1,15 @@
 const pool = require('../db');
 
-// Returns a repository bound to the given Postgres table.
-// Usage: const repo = createRepository('"retro-wave-games".leaderboards_pacman');
+const ALLOWED_TABLES = new Set([
+  '"retro-wave-games".leaderboards_pacman',
+  '"retro-wave-games".leaderboards_snake',
+  '"retro-wave-games".leaderboards_breakout',
+  '"retro-wave-games".leaderboards_tetris',
+  '"retro-wave-games".leaderboards_infinity_run',
+]);
+
 function createRepository(table) {
+  if (!ALLOWED_TABLES.has(table)) throw new Error(`createRepository: unknown table "${table}"`);
   return {
     async insertScore({ name, score }) {
       const result = await pool.query(
