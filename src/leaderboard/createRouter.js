@@ -2,6 +2,9 @@ const { Router } = require('express');
 const { randomUUID } = require('crypto');
 const createRepository = require('./createRepository');
 const { containsProfanity } = require('./profanity');
+const rateLimit = require('express-rate-limit');
+
+const MAX_SESSIONS = 1000; // Prevent memory exhaustion
 
 const SESSION_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
 const MAX_PTS_PER_SECOND = 1000;            // generous ceiling for score plausibility
@@ -25,15 +28,35 @@ function createLeaderboardRouter({ table }) {
   const repo = createRepository(table);
   const router = Router();
 
+  // Route-specific Rate Limiting
+  const sessionLimiter = rateLimit({
+    windowMs: 5 * 60 * 1000, // 5 minutes
+    max: 20,                // max 20 session tokens per 5 mins
+    message: { error: 'Muitas solicitações de sessão. Tente novamente mais tarde.' }
+  });
+
+  const scoreLimiter = rateLimit({
+    windowMs: 5 * 60 * 1000,
+    max: 10,                 // max 10 scores submitted per 5 mins
+    message: { error: 'Muitas pontuações enviadas. Tente novamente mais tarde.' }
+  });
+
   // POST /session — issue a one-time session token when a game starts
-  router.post('/session', (req, res) => {
+  router.post('/session', sessionLimiter, (req, res) => {
+    // Prevent map from growing indefinitely
+    if (sessions.size >= MAX_SESSIONS) {
+      // Emergency cleanup: remove oldest 10%
+      const keys = Array.from(sessions.keys());
+      for (let i = 0; i < 100; i++) sessions.delete(keys[i]);
+    }
+
     const token = randomUUID();
     sessions.set(token, { createdAt: Date.now(), used: false });
     res.json({ sessionToken: token });
   });
 
   // POST / — save a score; requires a valid, unused session token
-  router.post('/', async (req, res) => {
+  router.post('/', scoreLimiter, async (req, res) => {
     const { name, score, sessionToken } = req.body;
 
     if (!name || score === undefined || !sessionToken) {

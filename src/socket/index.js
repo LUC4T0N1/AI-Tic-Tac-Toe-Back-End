@@ -196,6 +196,32 @@ function registerSocketHandlers(io) {
   io.on('connection', (socket) => {
     console.log(`User Connected: ${socket.id}`);
 
+    // Basic Socket Rate Limiting
+    const eventCounts = new Map();
+    const MAX_EVENTS_PER_WINDOW = 200; // Total events across all types
+    const WINDOW_MS = 10000;          // 10 seconds
+
+    socket.use(([event, ...args], next) => {
+      const now = Date.now();
+      const userData = eventCounts.get(socket.id) || { count: 0, startTime: now };
+
+      if (now - userData.startTime > WINDOW_MS) {
+        userData.count = 1;
+        userData.startTime = now;
+      } else {
+        userData.count++;
+      }
+
+      eventCounts.set(socket.id, userData);
+
+      if (userData.count > MAX_EVENTS_PER_WINDOW) {
+        console.warn(`Socket ${socket.id} rate limited and disconnected`);
+        socket.disconnect(true);
+        return;
+      }
+      next();
+    });
+
     // ── TicTacToe ──────────────────────────────────────────────────────────
     socket.on('join_room', (data) => {
       socket.join(data);
