@@ -113,54 +113,68 @@ function startPongGame(io, roomId) {
       st.cdown -= dt;
       if (st.cdown <= 0) { st.phase = 'playing'; st.ball = newBall(Math.random() < 0.5 ? 1 : -1); }
     } else if (st.phase === 'playing') {
-      const f = dt * 60;
+      // CCD: find the earliest collision each sub-step so that wall bounces and
+      // paddle hits are never processed out of order (the previous single-step
+      // approach computed crossY from the post-wall-bounce position, giving
+      // wrong angles and occasional pass-throughs when both happened in one tick).
+      const b    = st.ball;
+      let   rem  = dt * 60;   // remaining budget in 60-fps displacement units
+      let   iter = 0;
 
-      const oldX = st.ball.x;
-      const oldY = st.ball.y;
+      while (rem > 1e-4 && iter++ < 8) {
+        const dx = b.vx * rem;
+        const dy = b.vy * rem;
+        let   minT = 1.0;
+        let   hit  = null;
 
-      // Move ball
-      st.ball.x += st.ball.vx * f;
-      st.ball.y += st.ball.vy * f;
-
-      // Wall bounces
-      if (st.ball.y - BALL_R < 0)  { st.ball.y = BALL_R;      st.ball.vy =  Math.abs(st.ball.vy); }
-      if (st.ball.y + BALL_R > LH) { st.ball.y = LH - BALL_R; st.ball.vy = -Math.abs(st.ball.vy); }
-
-      // Left paddle collision
-      if (st.ball.vx < 0) {
-        const pr = LP_X + PAD_W; // right edge of left paddle = 42
-        if (oldX - BALL_R >= pr && st.ball.x - BALL_R <= pr) {
-          const t = oldX === st.ball.x ? 0 : (oldX - BALL_R - pr) / (oldX - st.ball.x);
-          const crossY = oldY + t * (st.ball.y - oldY);
-          const padTop = st.pY - (PAD_H_HIT - PAD_H) / 2;
-          if (crossY + BALL_R >= padTop && crossY - BALL_R <= padTop + PAD_H_HIT) {
-            bounce(st.ball, st.pY, 1, crossY);
-            st.ball.x = pr + BALL_R + 1 + st.ball.vx * f * (1 - t);
-            st.ball.y = crossY + st.ball.vy * f * (1 - t);
+        // Top wall: ball top (b.y - BALL_R) reaches 0
+        if (dy < 0) {
+          const t = (BALL_R - b.y) / dy;
+          if (t >= 0 && t < minT) { minT = t; hit = 'top'; }
+        }
+        // Bottom wall: ball bottom (b.y + BALL_R) reaches LH
+        if (dy > 0) {
+          const t = (LH - BALL_R - b.y) / dy;
+          if (t >= 0 && t < minT) { minT = t; hit = 'bot'; }
+        }
+        // Left paddle: ball left edge (b.x - BALL_R) reaches paddle right edge
+        if (dx < 0 && b.x - BALL_R > LP_X + PAD_W) {
+          const t = (b.x - BALL_R - (LP_X + PAD_W)) / (-dx);
+          if (t >= 0 && t < minT) {
+            const cy = b.y + t * dy;
+            const pt = st.pY - (PAD_H_HIT - PAD_H) / 2;
+            if (cy + BALL_R >= pt && cy - BALL_R <= pt + PAD_H_HIT) {
+              minT = t; hit = 'pad-left';
+            }
           }
         }
-      }
-
-      // Right paddle collision
-      if (st.ball.vx > 0) {
-        if (oldX + BALL_R <= RP_X && st.ball.x + BALL_R >= RP_X) {
-          const t = oldX === st.ball.x ? 0 : (RP_X - (oldX + BALL_R)) / (st.ball.x - oldX);
-          const crossY = oldY + t * (st.ball.y - oldY);
-          const padTop = st.aY - (PAD_H_HIT - PAD_H) / 2;
-          if (crossY + BALL_R >= padTop && crossY - BALL_R <= padTop + PAD_H_HIT) {
-            bounce(st.ball, st.aY, -1, crossY);
-            st.ball.x = RP_X - BALL_R - 1 + st.ball.vx * f * (1 - t);
-            st.ball.y = crossY + st.ball.vy * f * (1 - t);
+        // Right paddle: ball right edge (b.x + BALL_R) reaches paddle left edge
+        if (dx > 0 && b.x + BALL_R < RP_X) {
+          const t = (RP_X - (b.x + BALL_R)) / dx;
+          if (t >= 0 && t < minT) {
+            const cy = b.y + t * dy;
+            const pt = st.aY - (PAD_H_HIT - PAD_H) / 2;
+            if (cy + BALL_R >= pt && cy - BALL_R <= pt + PAD_H_HIT) {
+              minT = t; hit = 'pad-right';
+            }
           }
         }
+
+        // Advance to the earliest event (or end of step if no collision)
+        b.x += dx * minT;
+        b.y += dy * minT;
+        rem *= (1 - minT);
+
+        if      (hit === 'top')       { b.y = BALL_R;      b.vy =  Math.abs(b.vy); }
+        else if (hit === 'bot')       { b.y = LH - BALL_R; b.vy = -Math.abs(b.vy); }
+        else if (hit === 'pad-left')  { bounce(b, st.pY,  1,  b.y); b.x = LP_X + PAD_W + BALL_R + 1; }
+        else if (hit === 'pad-right') { bounce(b, st.aY, -1,  b.y); b.x = RP_X - BALL_R - 1; }
+        else break; // no collision — finished moving
       }
 
-      // Ball exits left wall → right player (guest) scores
-      if (st.ball.x + BALL_R < 0)  { st.aScore++; handlePoint(); return; }
-      // Ball exits right wall → left player (host) scores
-      if (st.ball.x - BALL_R > LW) { st.pScore++; handlePoint(); return; }
+      if (b.x + BALL_R < 0)  { st.aScore++; handlePoint(); return; }
+      if (b.x - BALL_R > LW) { st.pScore++; handlePoint(); return; }
     }
-    // gameover: keep broadcasting so clients stay on the gameover screen
 
     broadcast();
   }
@@ -201,7 +215,7 @@ function registerSocketHandlers(io) {
     const MAX_EVENTS_PER_WINDOW = 200; // Total events across all types
     const WINDOW_MS = 10000;          // 10 seconds
 
-    socket.use(([event, ...args], next) => {
+    socket.use(([_event, ..._args], next) => {
       const now = Date.now();
       const userData = eventCounts.get(socket.id) || { count: 0, startTime: now };
 
