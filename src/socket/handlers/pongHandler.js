@@ -67,7 +67,24 @@ function startPongGame(io, roomId) {
       if (st.cdown <= 0) { st.phase = 'playing'; st.ball = newBall(Math.random() < 0.5 ? 1 : -1); }
     } else if (st.phase === 'playing') {
       const b    = st.ball;
-      let   rem  = dt * 60;   
+
+      // Pre-pass: eject ball if it's already overlapping a paddle face
+      {
+        const lpFace = LP_X + PAD_W;
+        const lpt    = st.pY - (PAD_H_HIT - PAD_H) / 2;
+        const rpt    = st.aY - (PAD_H_HIT - PAD_H) / 2;
+        if (b.vx < 0 && b.x - BALL_R <= lpFace && b.x > LP_X &&
+            b.y + BALL_R >= lpt && b.y - BALL_R <= lpt + PAD_H_HIT) {
+          b.x = lpFace + BALL_R + 1;
+          bounce(b, st.pY, 1, b.y);
+        } else if (b.vx > 0 && b.x + BALL_R >= RP_X && b.x < RP_X + PAD_W &&
+                   b.y + BALL_R >= rpt && b.y - BALL_R <= rpt + PAD_H_HIT) {
+          b.x = RP_X - BALL_R - 1;
+          bounce(b, st.aY, -1, b.y);
+        }
+      }
+
+      let   rem  = dt * 60;
       let   iter = 0;
 
       while (rem > 1e-4 && iter++ < 8) {
@@ -84,7 +101,7 @@ function startPongGame(io, roomId) {
           const t = (LH - BALL_R - b.y) / dy;
           if (t >= 0 && t < minT) { minT = t; hit = 'bot'; }
         }
-        if (dx < 0 && b.x - BALL_R > LP_X + PAD_W) {
+        if (dx < 0) {
           const t = (b.x - BALL_R - (LP_X + PAD_W)) / (-dx);
           if (t >= 0 && t < minT) {
             const cy = b.y + t * dy;
@@ -94,7 +111,7 @@ function startPongGame(io, roomId) {
             }
           }
         }
-        if (dx > 0 && b.x + BALL_R < RP_X) {
+        if (dx > 0) {
           const t = (RP_X - (b.x + BALL_R)) / dx;
           if (t >= 0 && t < minT) {
             const cy = b.y + t * dy;
@@ -113,7 +130,8 @@ function startPongGame(io, roomId) {
         else if (hit === 'bot')       { b.y = LH - BALL_R; b.vy = -Math.abs(b.vy); }
         else if (hit === 'pad-left')  { bounce(b, st.pY,  1,  b.y); b.x = LP_X + PAD_W + BALL_R + 1; }
         else if (hit === 'pad-right') { bounce(b, st.aY, -1,  b.y); b.x = RP_X - BALL_R - 1; }
-        else break; 
+        else break;
+        if (rem < 1e-9) break;
       }
 
       if (b.x + BALL_R < 0)  { st.aScore++; handlePoint(); return; }
