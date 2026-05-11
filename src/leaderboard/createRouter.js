@@ -7,7 +7,7 @@ const rateLimit = require('express-rate-limit');
 const MAX_SESSIONS = 1000; // Prevent memory exhaustion
 
 const SESSION_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
-const MAX_PTS_PER_SECOND = 1000;            // generous ceiling for score plausibility
+const MAX_PTS_PER_SECOND = 10000;            // generous ceiling for score plausibility
 
 // Shared across all leaderboard instances — one session store for the whole server.
 const sessions = new Map();
