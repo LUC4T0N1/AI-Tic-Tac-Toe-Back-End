@@ -102,7 +102,7 @@ function createLeaderboardRouter({ table }) {
   // GET /?page=N — paginated top scores
   router.get('/', async (req, res) => {
     const page = Math.min(10000, Math.max(1, parseInt(req.query.page) || 1));
-    const limit = 20;
+    const limit = 10;
     const offset = (page - 1) * limit;
     try {
       const rows = await repo.getTopScores({ limit, offset });
