@@ -1,5 +1,7 @@
 # 🎮 Retro Wave Games — Backend
 
+**This project is a non-commercial fan-made portfolio project inspired by classic retro games. All trademarks and game names belong to their respective owners.**
+
 [![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
 [![Socket.IO](https://img.shields.io/badge/Socket.IO-4.5-black.svg)](https://socket.io/)
