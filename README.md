@@ -403,7 +403,7 @@ src/
 ```bash
 # 1. Clone the repository
 git clone https://github.com/LUC4T0N1/Retro-Wave-Games-Back-End
-cd Retro-Wave-Games-Back-End
+cd Retro-Wave-Games-Back-End/src
 
 # 2. Install dependencies
 npm install
@@ -412,8 +412,7 @@ npm install
 # Create a .env file (see section below)
 
 # 4. Start the server
-npm start          # production
-npx nodemon src/index.js   # development (auto-restart)
+node index.js
 ```
 
 The server will be available at `http://localhost:8080`.
