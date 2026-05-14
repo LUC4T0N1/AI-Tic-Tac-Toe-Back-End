@@ -7,7 +7,6 @@ const rateLimit = require('express-rate-limit');
 const MAX_SESSIONS = 1000; // Prevent memory exhaustion
 
 const SESSION_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
-const MAX_PTS_PER_SECOND = 10000;            // generous ceiling for score plausibility
 
 // Shared across all leaderboard instances — one session store for the whole server.
 const sessions = new Map();
@@ -24,7 +23,7 @@ setInterval(() => {
 //   const createLeaderboardRouter = require('./leaderboard/createRouter');
 //   app.use('/leaderboard/pacman', createLeaderboardRouter({ table: '"retro-wave-games".leaderboards_pacman' }));
 //   app.use('/leaderboard/snake',  createLeaderboardRouter({ table: '"retro-wave-games".leaderboards_snake' }));
-function createLeaderboardRouter({ table }) {
+function createLeaderboardRouter({ table, maxScore = 9_999_999 }) {
   const repo = createRepository(table);
   const router = Router();
 
@@ -79,12 +78,12 @@ function createLeaderboardRouter({ table }) {
     if (session.used) {
       return res.status(403).json({ error: 'Sessão já utilizada' });
     }
-    const elapsedSec = (Date.now() - session.createdAt) / 1000;
-    if (elapsedSec > SESSION_TTL_MS / 1000) {
+    const elapsedMs = Date.now() - session.createdAt;
+    if (elapsedMs > SESSION_TTL_MS) {
       sessions.delete(sessionToken);
       return res.status(403).json({ error: 'Sessão expirada' });
     }
-    if (score < 0 || score > Math.ceil(elapsedSec * MAX_PTS_PER_SECOND)) {
+    if (score > maxScore) {
       return res.status(403).json({ error: 'Score inválido para esta sessão' });
     }
 
