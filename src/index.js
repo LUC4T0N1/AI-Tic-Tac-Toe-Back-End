@@ -15,6 +15,10 @@ const infinityRunRoutes = require('./games/infinityrun/routes');
 const { registerSocketHandlers } = require('./socket');
 
 const app = express();
+
+// Trust proxy settings for Render proxy rate limiting
+app.set('trust proxy', 1);
+
 const server = http.createServer(app);
 
 // Security Headers
